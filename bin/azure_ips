@@ -1,0 +1,32 @@
+#!/usr/bin/env perl
+ 
+use Azure::Networks;
+use Net::CIDR::Set;
+
+my $file = $ARGV[0] or die "Usage: $0 file\n";
+ 
+my $nets = Azure::Networks->new(
+  file => 'PublicIPs_20150302.xml'
+);
+
+my @services = @{ $nets->services }; 
+my $cidrs = $nets->cidrs;
+ 
+my $set = Net::CIDR::Set->new(@$cidrs);
+ 
+my $count = 0;
+my $iter = $set->iterate_cidr;
+while ( my $cidr = $iter->() ) {
+  my ($net, $bits) = split /\//, $cidr;
+  if ($bits == 32) {
+    $count += 1;
+  } elsif ($bits == 31) {
+    $count += 2;
+  } else {
+    $count += (( 2 ** (32 - $bits) ) - 2);
+  }
+}
+ 
+print "Azure has $count IP Addresses\n";
+print "in " . scalar(@{ $nets->regions }) . " regions\n"; 
+print "for " . join(',', @services) . "\n";
